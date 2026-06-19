@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { Item } from '../types'
 
 // Uncomment this import when you are ready to wire up the search logic:
-// import { searchItems } from '../services/mockApi'
+import { searchItems } from '../services/mockApi'
 
 export interface UseSearchReturn {
   query: string
@@ -17,7 +17,34 @@ export function useSearch(): UseSearchReturn {
   const [results, setResults] = useState<Item[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const requestIdRef = useRef(0)
 
+useEffect(() => {
+  const currentRequestId = ++requestIdRef.current
+
+  const timer = setTimeout(async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      const data = await searchItems(query)
+
+      if (currentRequestId === requestIdRef.current) {
+        setResults(data)
+      }
+    } catch (err) {
+      if (currentRequestId === requestIdRef.current) {
+        setError('Something went wrong')
+      }
+    } finally {
+      if (currentRequestId === requestIdRef.current) {
+        setIsLoading(false)
+      }
+    }
+  }, 300)
+
+  return () => clearTimeout(timer)
+}, [query])
   // ── TODO: Implement debounced async search ──────────────────────────────
   //
   // 1. DEBOUNCE (300 ms)
